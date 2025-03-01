@@ -1,5 +1,8 @@
 # .gitignore 追加
 .env
+data/
+temp/
+output/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
