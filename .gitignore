@@ -3,6 +3,8 @@
 data/
 temp/
 output/
+translateUtils/translation_cache/
+**/*.ass
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -175,3 +177,4 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+temp_danmu.ass

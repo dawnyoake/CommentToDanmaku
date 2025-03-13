@@ -13,12 +13,12 @@ from tqdm import tqdm
 @dataclass
 class AppConfig:
     # 输入输出路径
-    video_path: str = r".\data\AOI-Simple.mp4"
-    excel_path: str = r".\data\AOI-Simple_baidu_translated.xlsx"
-    output_path: str = r".\output\MKH-output-slow.mp4"
+    video_path: str = r".\data\AOI-ER02\AOI-ER02.mp4"
+    excel_path: str = r".\data\AOI-ER02\AOI-ER02.xlsx"
+    output_path: str = r".\output\MKH-02-output-fast.mp4"
     
     # 弹幕参数
-    start_comment_index: int = 48
+    start_comment_index: int = 1
     scroll_speed: int = 150          # 像素/秒
     vertical_layers: int = 8         # 最大垂直分层数
     min_layer_height: int = 50       # 最小层高度（像素）
@@ -26,7 +26,7 @@ class AppConfig:
     scroll_duration: int = 12        # 默认滚动时长（秒）
 
     # FFmpeg参数
-    ffmpeg_preset: str = 'veryslow‌'      # medium‌, slower‌, veryslow‌
+    ffmpeg_preset: str = 'fast'      # veryslowe, fast
 
 # --------------------------
 # 数据类（结构化数据处理）
@@ -243,7 +243,7 @@ def CommentAssVideo():
         
         # 保存ASS文件到临时文件夹
         # 修改后（方法一：转义反斜杠）
-        ass_path = os.path.join('temp', 'temp_danmu.ass')
+        ass_path = 'temp_danmu.ass'
         if not os.path.exists('temp'):
             os.makedirs('temp')
         with open(ass_path, 'w', encoding='utf-8') as f:

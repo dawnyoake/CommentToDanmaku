@@ -1,0 +1,1 @@
+from .QuickTable import get_translation_map

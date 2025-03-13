@@ -1,12 +1,19 @@
 # -*- coding: utf-8 -*-
+import sys
 import requests
 import random
 import json
 import os
+
+# 获取当前文件所在目录
+current_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(current_dir)
+
 from dotenv import load_dotenv
 from pathlib import Path
 from hashlib import md5
 from QuickTable import *
+
 
 # 获取 .env 文件的绝对路径
 env_path = Path(__file__).resolve().parent.parent / '.env'
@@ -21,7 +28,7 @@ appkey = os.getenv('BAIDU_APP_KEY')
 def make_md5(s, encoding='utf-8'):
     return md5(s.encode(encoding)).hexdigest()
 
-def createRequest(text):
+def createRequestBaidu(text):
     # Trim input text
     text = text.strip()
     if not text:
