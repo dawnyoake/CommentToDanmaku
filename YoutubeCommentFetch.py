@@ -42,5 +42,5 @@ def main(url):
     save_to_excel(chat_data, video_id)
 
 if __name__ == '__main__':
-    url = 'https://www.youtube.com/watch?v=Xw6LDY2rDKU&ab_channel=amiamiHobbyChannel'
+    url = 'https://www.youtube.com/watch?v=D5KvM6aBGMg&t=458s&ab_channel=amiamiHobbyChannel'
     main(url)

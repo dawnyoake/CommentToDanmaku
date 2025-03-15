@@ -1,11 +1,11 @@
 import re
 import pandas as pd
-import time
+import os
 from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor
 from threading import Lock, Semaphore
 import queue
-from Translate import translate_with_rate_limit
+from CommentsTranslate import translate_with_rate_limit
 
 from translateUtils.BaiduTranslation import createRequestBaidu
 from translateUtils.QuickTable import *
@@ -87,7 +87,12 @@ def translate_ass(input_path, output_path):
     with open(output_path, 'w', encoding='utf-8-sig') as f:  # 保持BOM头
         f.writelines(lines)
 
-    print('总消耗tokens = ', all_token_cost)
+    print('总消耗tokens = ', all_token_cost) 
 
 if __name__ == '__main__':
-    translate_ass(r"E:\R-User-File\R-Project-Myself\CommentCatcher\kirinuki\03\trans\03-cut1.ass", r"E:\R-User-File\R-Project-Myself\CommentCatcher\kirinuki\03\trans\03-cut1-dstrans.ass")
+    ass_file = r"E:\R-User-File\R-Project-Myself\CommentCatcher\kirinuki\04\04-audio-align.ass"
+    output_dir = r"E:\R-User-File\R-Project-Myself\CommentCatcher\kirinuki\04\trans"
+    
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    translate_ass(ass_file, output_dir + os.path.basename(ass_file))

@@ -1,4 +1,5 @@
 import os
+import json
 import subprocess
 import time
 from dataclasses import dataclass
@@ -14,12 +15,9 @@ from tqdm import tqdm
 @dataclass
 class AppConfig:
     # 输入输出路径
-    # video_path: str = r"E:\R-User-File\R-Project-Myself\CommentCatcher\kirinuki\04\04-MASK.mp4"
-    # excel_path: str = r"E:\R-User-File\R-Project-Myself\CommentCatcher\kirinuki\04\04-comment-translation.xlsx"
-    # output_path: str = r"E:\R-User-File\R-Project-Myself\CommentCatcher\kirinuki\04\04-MASK-DANMU.mp4"
-    video_path: str = r"E:\R-User-File\R-Project-Myself\CommentCatcher\kirinuki\03\trans\03-cut2.mp4"
-    excel_path: str = r"E:\R-User-File\R-Project-Myself\CommentCatcher\kirinuki\03\03-comment-translation.xlsx"
-    output_path: str = r"E:\R-User-File\R-Project-Myself\CommentCatcher\kirinuki\03\03-MASK-DANMU-TEST.mp4"
+    video_path: str = r"E:\R-User-File\R-Project-Myself\CommentCatcher\kirinuki\04\04-MASK.mp4"
+    excel_path: str = r"E:\R-User-File\R-Project-Myself\CommentCatcher\kirinuki\04\04-comment-translation.xlsx"
+    output_path: str = r"E:\R-User-File\R-Project-Myself\CommentCatcher\kirinuki\04\04-MASK-DANMU-TEST-17.mp4"
 
     main_ass_path : str = r"trans04-audio-align.ass"
     
@@ -37,8 +35,8 @@ class AppConfig:
 
     # 弹幕参数
     start_comment_index: int = 22
-    gamestart = 370 - start_comment_index
-    gameend = 1481 - start_comment_index
+    gamestart = 226
+    gameend = 2220 - 22
     scroll_speed: int = 150          # 像素/秒
     vertical_layers: int = 8         # 最大垂直分层数
     min_layer_height: int = 50       # 最小层高度（像素）
@@ -111,7 +109,14 @@ class DanmuProcessor:
         def process_danmu(row):
             # 解析基础信息
             start_time = row["时间"]
-            text = row["翻译后"]
+            
+            try:
+                translated_data = json.loads(row["翻译后"].replace("'", "\""))  # 处理单引号问题
+                text = translated_data["trans_res"]
+            except json.JSONDecodeError:
+                print("JSON 解析失败，请检查字符串格式:", row["翻译后"])
+            except KeyError:
+                print("trans_res 字段不存在:", row["翻译后"])
 
             # 创建文本剪辑
             text_clip = TextClip(
@@ -307,62 +312,62 @@ def run_ffmpeg(config: AppConfig, ass_path: str):
     """执行FFmpeg命令"""
     video_width, video_height = VideoFileClip(config.video_path).size
     output_resolution = f"{video_width}:{video_height}"  # 根据输入视频调整输出分辨率
+    command_1ass = [
+        'ffmpeg',
+        '-hwaccel', 'cuda',                  # 启用CUDA解码
+        '-hwaccel_output_format', 'cuda',
+        '-i', config.video_path,              # 输入视频路径
+        '-ss', '00:00:00',                    # 开始时间
+        '-t', '280',                          # 持续时间
+        '-vf', f"hwupload,scale_cuda={output_resolution}:format=yuv420p,hwdownload,ass='{ass_path}'",  # 关键修改点
+        '-c:v', 'h264_nvenc',                 # 使用NVIDIA编码器
+        '-preset', config.ffmpeg_preset,
+        '-c:a', 'aac',
+        '-b:a', '192k',
+        config.output_path
+    ]
+    command_2ass = [
+        'ffmpeg',
+        '-hwaccel', 'cuda',                  # 启用CUDA解码
+        '-hwaccel_output_format', 'cuda',
+        '-i', config.video_path,             # 输入视频路径
+        '-ss', '00:00:00',                   # 开始时间
+        '-t', '280',                         # 持续时间
+        '-vf', f"hwupload,scale_cuda={output_resolution}:format=yuv420p,hwdownload," 
+            f"ass='{ass_path}',ass='{AppConfig().main_ass_path}'",  # 关键修改：叠加双字幕
+        '-c:v', 'h264_nvenc',                # 使用NVIDIA编码器
+        '-preset', config.ffmpeg_preset,
+        '-c:a', 'aac',
+        '-b:a', '192k',
+        config.output_path
+    ]
     command = [
         'ffmpeg',
         '-hwaccel', 'cuda',
-        '-hwaccel_output_format', 'cuda',  # 确保解码输出为CUDA格式
-        '-threads', '16',
+        '-hwaccel_output_format', 'cuda',
         '-i', config.video_path,
-        # '-ss', '00:00:00',  # 开始时间，从00:00:00开始
-        # '-t', '280',        # 持续时间，180秒=3分钟
-        '-r', '30',  # 添加帧率参数
+        # '-ss', '00:11:00',
+        # '-t', '280',
+        '-vf', f"hwupload,scale_cuda={output_resolution}:format=yuv420p,hwdownload,ass='{ass_path}',ass='{AppConfig().main_ass_path}'", 
         '-c:v', 'hevc_nvenc',
-        '-crf', '15',
-        '-vf', f"hwupload_cuda,scale_cuda={output_resolution},hwdownload,ass='{ass_path}',format=yuv420p",
-        '-preset', config.ffmpeg_preset,
-        '-c:a', 'aac',  # 使用更好的音频编码
-        '-b:a', '192k',  # 设置音频比特率
+        '-preset', 'p6',          # 改用 p6 规避兼容性问题
+        '-rc', 'vbr',             # 替代 vbr_hq，更稳定的高质量模式
+        '-cq', '18',              # 恒定质量模式（18-23为推荐范围）
+        '-qmin', '0',             # 最小量化器（防止低动态场景模糊）
+        '-qmax', '30',            # 最大量化器（控制最差质量）
+        '-profile:v', 'main',     # 通用兼容性（若输入是8bit）
+        '-multipass', 'fullres',  # 启用完整多阶段编码提升质量
+        '-c:a', 'aac',
+        '-b:a', '192k',
+        '-movflags', '+faststart',
+        '-y',                     # 自动覆盖输出文件
         config.output_path
     ]
-    
+   
     print("正在合并视频...")
     start_time = time.time()
     subprocess.run(command, check=True)
     print(f"合并完成，耗时: {time.time() - start_time:.2f}秒")
-
-# --------------------------
-# 主程序
-# --------------------------
-def CommentAssVideo():
-    # 初始化配置
-    config = AppConfig()
-    
-    try:
-        # 处理弹幕
-        processor = DanmuProcessor(config)
-        danmu_clips = processor.generate_danmu_clips()
-        
-        # 生成ASS文件
-        ass_content = ASSGenerator.generate_capacity_based_ass(
-            danmu_clips, 
-            video_size=config.video_resolution
-        )
-        
-        # 保存ASS文件到临时文件夹
-        ass_path = 'temp_danmu.ass'
-        if not os.path.exists('temp'):
-            os.makedirs('temp')
-        with open(ass_path, 'w', encoding='utf-8') as f:
-            f.write(ass_content)
-        
-        # 不需要ffmpeg压制，直接输出ASS文件
-        print("ASS文件生成成功，路径为:", ass_path)
-        
-    except Exception as e:
-        print(f"处理失败: {str(e)}")
-    finally:
-        if 'processor' in locals():
-            processor.video.close()
 
 # --------------------------
 # 主程序

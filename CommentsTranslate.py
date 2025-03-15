@@ -10,7 +10,7 @@ from translateUtils.DeepSeekTranslate import createRequestDeepSeek
 from translateUtils.QuickTable import *
 
 # 读取 Excel 文件
-excel_path = r".\data\AOI-ER03\03.xlsx"
+excel_path = r"E:\R-User-File\R-Project-Myself\CommentCatcher\Comment2Ass2MP4\ytbcomments\04.xlsx"
 
 # 创建限流器和锁
 rate_limiter = Semaphore(10)  # 限制最大并发数为10
@@ -29,6 +29,9 @@ def translate_with_rate_limit(text, translation_service=1):
         return {"trans_res": translation_map[text], "tokens_cost": 0}
     
     api_tokens_cost = 0
+
+    if len(text) > 11:
+        translation_service = 2
 
     try:
         with rate_limiter:  # 使用信号量控制并发
@@ -60,7 +63,7 @@ if __name__ == '__main__':
             df.at[idx, '翻译后'] = translate_with_rate_limit(row['弹幕内容'])
 
     # 保存为新的 Excel 文件
-    new_excel_path = r".\output\03-comment-translation.xlsx"
+    new_excel_path = r".\output\04-comment-translation.xlsx"
     df.to_excel(new_excel_path, index=False)
 
     print(f"翻译后的文件已保存到 {new_excel_path}")
